@@ -70,7 +70,8 @@ Sinistre entrant
 ```
 .
 ├── Notebook_Final_v2.ipynb      # Notebook principal (12 modules)
-├── app.py                       # API REST FastAPI
+├── app.py                       # API REST FastAPI (3 endpoints)
+├── pipeline.py                  # Module pipeline : RAG, scoring, agents LLM
 ├── requirements.txt
 ├── README.md
 ├── skills/
@@ -111,8 +112,8 @@ Sinistre entrant
 ### 1. Cloner le dépôt
 
 ```bash
-git clone https://gitlab.com/<votre-groupe>/fraude-auto-rag.git
-cd fraude-auto-rag
+git clone https://forge.univ-lyon1.fr/p2408012/fraude_auto_rag.git
+cd fraude_auto_rag
 ```
 
 ### 2. Créer l'environnement Python 3.11
@@ -174,8 +175,11 @@ jupyter notebook Notebook_Final_v2.ipynb
 ## Lancer l'API
 
 ```bash
-uvicorn app:app --reload --port 8000
+export GROQ_API_KEY="gsk_..."
+.venv/bin/python -m uvicorn app:app --port 8000
 ```
+
+> **Note :** ne pas utiliser `--reload` — il surveille le dossier `.venv` et provoque une boucle de redémarrage.
 
 Documentation interactive Swagger : [http://localhost:8000/docs](http://localhost:8000/docs)
 
