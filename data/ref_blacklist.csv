@@ -1,0 +1,51 @@
+insured_id,reason,date_added,severity
+INS_005363,réseau organisé identifié,2023-04-14,critique
+INS_005432,faux documents détectés,2022-08-08,critique
+INS_004247,multi-déclarations prouvées,2023-12-02,modéré
+INS_001148,multi-déclarations prouvées,2026-05-09,élevé
+INS_000945,réseau organisé identifié,2023-11-06,élevé
+INS_005282,réseau organisé identifié,2022-08-29,modéré
+INS_002737,faux documents détectés,2023-08-21,critique
+INS_002512,fraude présumée — enquête en cours,2025-01-22,modéré
+INS_004745,fraude présumée — enquête en cours,2023-01-14,critique
+INS_005276,complicité garage confirmée,2022-11-02,élevé
+INS_005645,fraude confirmée — condamné,2024-02-03,critique
+INS_005943,fraude confirmée — condamné,2025-09-09,élevé
+INS_003491,fraude confirmée — condamné,2022-08-14,critique
+INS_001549,complicité garage confirmée,2022-09-10,critique
+INS_000095,réseau organisé identifié,2022-11-07,élevé
+INS_004135,réseau organisé identifié,2025-04-14,modéré
+INS_001928,faux documents détectés,2025-10-26,modéré
+INS_004984,multi-déclarations prouvées,2025-03-16,élevé
+INS_005707,faux documents détectés,2025-06-26,modéré
+INS_005695,faux documents détectés,2025-11-12,modéré
+INS_003922,multi-déclarations prouvées,2024-10-27,élevé
+INS_003917,faux documents détectés,2024-10-19,critique
+INS_001121,multi-déclarations prouvées,2023-04-02,élevé
+INS_005384,faux documents détectés,2022-08-08,modéré
+INS_002777,multi-déclarations prouvées,2023-08-31,critique
+INS_000930,faux documents détectés,2024-09-12,modéré
+INS_004439,fraude confirmée — condamné,2025-05-07,élevé
+INS_004103,fraude confirmée — condamné,2025-06-10,critique
+INS_001875,fraude présumée — enquête en cours,2024-09-08,modéré
+INS_001585,réseau organisé identifié,2026-01-10,élevé
+INS_004594,faux documents détectés,2022-08-09,modéré
+INS_005179,faux documents détectés,2025-07-08,critique
+INS_004833,fraude présumée — enquête en cours,2023-04-02,modéré
+INS_002749,complicité garage confirmée,2025-07-12,critique
+INS_001998,multi-déclarations prouvées,2025-08-18,critique
+INS_002473,complicité garage confirmée,2023-09-23,modéré
+INS_004804,réseau organisé identifié,2024-02-01,élevé
+INS_000644,faux documents détectés,2024-12-30,élevé
+INS_000278,fraude présumée — enquête en cours,2024-05-20,modéré
+INS_001462,multi-déclarations prouvées,2024-10-14,modéré
+INS_003184,complicité garage confirmée,2025-10-01,élevé
+INS_001842,fraude présumée — enquête en cours,2022-10-15,critique
+INS_004894,réseau organisé identifié,2022-06-12,critique
+INS_004470,complicité garage confirmée,2024-09-11,critique
+INS_003421,réseau organisé identifié,2023-11-30,critique
+INS_002358,faux documents détectés,2022-10-18,critique
+INS_004852,fraude confirmée — condamné,2025-06-01,modéré
+INS_001796,complicité garage confirmée,2025-10-21,élevé
+INS_003016,réseau organisé identifié,2022-07-23,élevé
+INS_002414,réseau organisé identifié,2023-07-09,critique
