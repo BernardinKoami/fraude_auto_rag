@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FraudScan — Détection fraude assurance auto</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #F1F5F9;
+    color: #1E293B;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* ── Header ─────────────────────────────────────────────── */
+  header {
+    background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+    color: white;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 2px 8px rgba(79,70,229,.35);
+  }
+  header svg { flex-shrink: 0; }
+  header h1 { font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
+  header p  { font-size: 11px; opacity: .85; margin-top: 1px; }
+  .badge-api {
+    margin-left: auto;
+    background: rgba(255,255,255,.18);
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  /* ── Layout ─────────────────────────────────────────────── */
+  main { padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+
+  .card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    overflow: hidden;
+  }
+  .card-header {
+    background: #F8FAFC;
+    border-bottom: 1px solid #E2E8F0;
+    padding: 10px 16px;
+    font-weight: 600;
+    font-size: 12px;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-body { padding: 16px; }
+
+  /* ── Form grid ───────────────────────────────────────────── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 16px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 3px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 11px; font-weight: 600; color: #64748B; }
+  input, select, textarea {
+    border: 1px solid #CBD5E1;
+    border-radius: 7px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-family: inherit;
+    color: #1E293B;
+    background: white;
+    transition: border-color .15s, box-shadow .15s;
+    width: 100%;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #4F46E5;
+    box-shadow: 0 0 0 3px rgba(79,70,229,.12);
+  }
+  textarea { resize: vertical; min-height: 60px; }
+
+  /* ── Button ──────────────────────────────────────────────── */
+  .btn-analyze {
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, #4F46E5, #7C3AED);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+  }
+  .btn-analyze:hover  { opacity: .9; }
+  .btn-analyze:active { transform: scale(.99); }
+  .btn-analyze:disabled { opacity: .55; cursor: not-allowed; }
+
+  /* ── Loading ─────────────────────────────────────────────── */
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,.35);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Results ─────────────────────────────────────────────── */
+  #results { display: none; }
+
+  .scores-row {
+    display: grid;
+    grid-template-columns: 120px 1fr 1fr 1fr;
+    gap: 12px;
+    align-items: center;
+  }
+
+  /* Gauge */
+  .gauge-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .gauge-wrap svg { filter: drop-shadow(0 2px 6px rgba(0,0,0,.1)); }
+  .gauge-label { font-size: 10px; color: #94A3B8; font-weight: 600; text-transform: uppercase; }
+
+  /* Score cards */
+  .score-card {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    padding: 12px 14px;
+    text-align: center;
+  }
+  .score-card .val {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1E293B;
+    line-height: 1;
+  }
+  .score-card .lbl {
+    font-size: 10px;
+    color: #94A3B8;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+
+  /* Risk badge */
+  .risk-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .3px;
+    margin-top: 6px;
+  }
+  .risk-FAIBLE  { background: #DCFCE7; color: #16A34A; }
+  .risk-MODERE  { background: #FEF3C7; color: #D97706; }
+  .risk-ELEVE   { background: #FEE2E2; color: #DC2626; }
+
+  /* Neighbors table */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th {
+    background: #F8FAFC;
+    padding: 7px 10px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    color: #64748B;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+    border-bottom: 1px solid #E2E8F0;
+  }
+  td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #F1F5F9;
+    color: #334155;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #F8FAFC; }
+  .fraud-yes { color: #DC2626; font-weight: 600; }
+  .fraud-no  { color: #16A34A; font-weight: 600; }
+
+  .sim-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sim-bar-bg {
+    flex: 1;
+    height: 6px;
+    background: #E2E8F0;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .sim-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #4F46E5, #7C3AED);
+  }
+
+  /* LLM analysis */
+  #llm-output {
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: #334155;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  #llm-output strong { color: #1E293B; }
+
+  .json-block {
+    background: #0F172A;
+    color: #94A3B8;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 11px;
+    line-height: 1.6;
+    overflow-x: auto;
+    margin-top: 10px;
+  }
+  .json-key    { color: #818CF8; }
+  .json-str    { color: #34D399; }
+  .json-num    { color: #F59E0B; }
+  .json-bool   { color: #F87171; }
+
+  /* Error */
+  .error-box {
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #B91C1C;
+    font-size: 12px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .step-tag {
+    display: inline-block;
+    background: #EEF2FF;
+    color: #4F46E5;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 700;
+    margin-right: 4px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────── -->
+<header>
+  <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+    <rect width="28" height="28" rx="8" fill="rgba(255,255,255,0.15)"/>
+    <path d="M14 5L6 9v7c0 4.4 3.4 8.5 8 9.5 4.6-1 8-5.1 8-9.5V9L14 5z"
+          fill="rgba(255,255,255,0.9)" stroke="white" stroke-width=".5"/>
+    <path d="M11 14l2 2 4-4" stroke="#4F46E5" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <div>
+    <h1>FraudScan v2</h1>
+    <p>Détection fraude assurance auto · RAG + Réseau + LLM</p>
+  </div>
+  <div class="badge-api" id="api-status">⚪ API non vérifiée</div>
+</header>
+
+<main>
+
+  <!-- ── Formulaire ─────────────────────────────────────────── -->
+  <div class="card">
+    <div class="card-header">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+        <rect x="1" y="1" width="11" height="11" rx="2" stroke="#64748B" stroke-width="1.3"/>
+        <path d="M4 6.5h5M4 4.5h5M4 8.5h3" stroke="#64748B" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      Saisie du sinistre
+    </div>
+    <div class="card-body">
+      <form id="claim-form">
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label>ID Sinistre</label>
+            <input type="text" id="claim_id" value="CLM_DEMO_001" required>
+          </div>
+          <div class="form-group">
+            <label>ID Assuré</label>
+            <input type="text" id="insured_id" value="INS_000042" required>
+          </div>
+
+          <div class="form-group">
+            <label>Type d'incident</label>
+            <select id="incident_type">
+              <option>Collision simple</option>
+              <option>Vol total</option>
+              <option>Vol partiel</option>
+              <option>Bris de glace</option>
+              <option>Incendie</option>
+              <option>Catastrophe naturelle</option>
+              <option>Vandalisme</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Gravité</label>
+            <select id="incident_severity">
+              <option value="mineur">Mineur</option>
+              <option value="important" selected>Important</option>
+              <option value="majeur">Majeur</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Date de l'incident</label>
+            <input type="date" id="incident_date" value="2024-11-20">
+          </div>
+          <div class="form-group">
+            <label>Heure (0–23)</label>
+            <input type="number" id="incident_hour" value="3" min="0" max="23">
+          </div>
+
+          <div class="form-group">
+            <label>Jour semaine (0=Lun, 6=Dim)</label>
+            <input type="number" id="incident_day_of_week" value="6" min="0" max="6">
+          </div>
+          <div class="form-group">
+            <label>Délai déclaration (jours)</label>
+            <input type="number" id="declaration_delay_days" value="12" min="0">
+          </div>
+
+          <div class="form-group">
+            <label>Région</label>
+            <select id="region">
+              <option>Île-de-France</option>
+              <option>Auvergne-Rhône-Alpes</option>
+              <option>Provence-Alpes-Côte d'Azur</option>
+              <option>Occitanie</option>
+              <option>Hauts-de-France</option>
+              <option>Nouvelle-Aquitaine</option>
+              <option>Grand Est</option>
+              <option>Bretagne</option>
+              <option>Normandie</option>
+              <option>Pays de la Loire</option>
+              <option>Bourgogne-Franche-Comté</option>
+              <option>Centre-Val de Loire</option>
+              <option>Corse</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Marque véhicule</label>
+            <input type="text" id="vehicle_brand" value="BMW">
+          </div>
+
+          <div class="form-group">
+            <label>Âge véhicule (ans)</label>
+            <input type="number" id="vehicle_age" value="1" min="0" max="30">
+          </div>
+          <div class="form-group">
+            <label>Montant réclamé (€)</label>
+            <input type="number" id="total_claim_amount" value="48000" min="1" step="100">
+          </div>
+
+          <div class="form-group">
+            <label>Âge conducteur</label>
+            <input type="number" id="driver_age" value="28" min="18" max="90">
+          </div>
+          <div class="form-group">
+            <label>Ancienneté contrat (mois)</label>
+            <input type="number" id="months_as_customer" value="3" min="1">
+          </div>
+
+          <div class="form-group">
+            <label>Revenu annuel (€)</label>
+            <input type="number" id="annual_income" value="18000" min="1" step="500">
+          </div>
+          <div class="form-group">
+            <label>Profession</label>
+            <input type="text" id="profession" value="commercial">
+          </div>
+
+          <div class="form-group">
+            <label>Témoins</label>
+            <input type="number" id="witnesses" value="0" min="0">
+          </div>
+          <div class="form-group">
+            <label>Sinistres antérieurs</label>
+            <input type="number" id="prior_claims" value="2" min="0">
+          </div>
+
+          <div class="form-group">
+            <label>Blessés</label>
+            <input type="number" id="bodily_injuries" value="0" min="0">
+          </div>
+          <div class="form-group">
+            <label>Rapport de police</label>
+            <select id="police_report">
+              <option value="Non">Non</option>
+              <option value="Oui">Oui</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Garage ID</label>
+            <input type="text" id="garage_id" value="GAR_0023">
+          </div>
+          <div class="form-group">
+            <label>Expert ID</label>
+            <input type="text" id="expert_id" value="AUCUN">
+          </div>
+
+          <div class="form-group">
+            <label>Sinistres AGIRA (36 mois)</label>
+            <input type="number" id="claims_last_36m_agira" value="4" min="0">
+          </div>
+          <div class="form-group">
+            <!-- spacer -->
+          </div>
+
+          <div class="form-group full">
+            <label>Description de l'incident</label>
+            <textarea id="incident_description">Véhicule volé la nuit dans un parking souterrain.</textarea>
+          </div>
+
+        </div><!-- /form-grid -->
+
+        <div style="margin-top:14px">
+          <button type="submit" class="btn-analyze" id="btn-submit">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 1.5C4 1.5 1.5 4 1.5 7S4 12.5 7 12.5 12.5 10 12.5 7 10 1.5 7 1.5z"
+                    stroke="white" stroke-width="1.3"/>
+              <path d="M7 4.5v5M4.5 7h5" stroke="white" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+            Analyser le sinistre
+          </button>
+        </div>
+
+        <div id="form-error" style="margin-top:10px; display:none"></div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Résultats ──────────────────────────────────────────── -->
+  <div id="results">
+
+    <!-- Scores -->
+    <div class="card">
+      <div class="card-header">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+          <circle cx="6.5" cy="6.5" r="5.5" stroke="#64748B" stroke-width="1.3"/>
+          <path d="M6.5 3.5v3l2 1.5" stroke="#64748B" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+        Scoring hybride
+      </div>
+      <div class="card-body">
+        <div class="scores-row">
+          <!-- Gauge -->
+          <div class="gauge-wrap">
+            <svg width="110" height="70" viewBox="0 0 110 70">
+              <path d="M10 65 A45 45 0 0 1 100 65" fill="none" stroke="#E2E8F0" stroke-width="10"
+                    stroke-linecap="round"/>
+              <path id="gauge-arc" d="M10 65 A45 45 0 0 1 100 65" fill="none" stroke="#4F46E5"
+                    stroke-width="10" stroke-linecap="round" stroke-dasharray="141.3"
+                    stroke-dashoffset="141.3" style="transition:stroke-dashoffset .8s ease, stroke .8s"/>
+              <text id="gauge-text" x="55" y="60" text-anchor="middle"
+                    font-size="16" font-weight="700" fill="#1E293B">0.00</text>
+            </svg>
+            <span class="gauge-label">Score final</span>
+            <div id="risk-badge" class="risk-badge risk-FAIBLE">FAIBLE</div>
+          </div>
+          <!-- Score cards -->
+          <div class="score-card">
+            <div class="val" id="score-rag">0.00</div>
+            <div class="lbl">Score RAG</div>
+          </div>
+          <div class="score-card">
+            <div class="val" id="score-net">0.00</div>
+            <div class="lbl">Score réseau</div>
+          </div>
+          <div class="score-card">
+            <div class="val" id="score-lat">—</div>
+            <div class="lbl">Latence</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Voisins -->
+    <div class="card">
+      <div class="card-header">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+          <circle cx="4.5" cy="4.5" r="2" stroke="#64748B" stroke-width="1.2"/>
+          <circle cx="9"   cy="4.5" r="2" stroke="#64748B" stroke-width="1.2"/>
+          <circle cx="6.5" cy="9"   r="2" stroke="#64748B" stroke-width="1.2"/>
+          <line x1="6.5" y1="4.5" x2="4.5" y2="4.5" stroke="#64748B" stroke-width="1"/>
+          <line x1="6.5" y1="4.5" x2="9"   y2="4.5" stroke="#64748B" stroke-width="1"/>
+          <line x1="6.5" y1="7"   x2="6.5" y2="4.5" stroke="#64748B" stroke-width="1"/>
+        </svg>
+        Sinistres voisins RAG (k=5)
+      </div>
+      <div class="card-body" style="padding:0">
+        <table>
+          <thead>
+            <tr>
+              <th>Sinistre</th>
+              <th>Fraude</th>
+              <th>Garage</th>
+              <th>Similarité</th>
+            </tr>
+          </thead>
+          <tbody id="neighbors-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Analyse LLM -->
+    <div class="card">
+      <div class="card-header">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+          <rect x="1" y="2" width="11" height="9" rx="2" stroke="#64748B" stroke-width="1.3"/>
+          <path d="M4 5h5M4 7.5h3" stroke="#64748B" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+        Analyse Expert LLM — Claude (Anthropic)
+        <span id="llm-latency" style="margin-left:auto;font-size:10px;font-weight:400;color:#94A3B8"></span>
+      </div>
+      <div class="card-body">
+        <div id="llm-loading" style="display:none;text-align:center;padding:20px 0">
+          <div style="display:inline-flex;align-items:center;gap:8px;color:#4F46E5;font-weight:600">
+            <div class="spinner" style="border-top-color:#4F46E5;border-color:rgba(79,70,229,.2)"></div>
+            Analyse en cours (Claude Haiku)…
+          </div>
+        </div>
+        <div id="llm-output"></div>
+        <div id="llm-json" class="json-block" style="display:none"></div>
+      </div>
+    </div>
+
+  </div><!-- /#results -->
+
+</main>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────
+const API_BASE    = 'http://localhost:8000';
+const CLAUDE_MODEL = 'claude-haiku-4-5-20251001';
+
+const SYSTEM_PROMPT = `Tu es un analyste anti-fraude senior dans une compagnie d'assurance française.
+Tu analyses des dossiers de sinistres auto en croisant : les caractéristiques du sinistre,
+le score hybride RAG+réseau, et les cas historiques similaires.
+
+Signaux à évaluer :
+- Montant anormalement élevé vs revenu déclaré
+- Sinistre peu après la souscription (< 3 mois)
+- Absence de rapport de police pour sinistre grave
+- Absence de témoins
+- Délai de déclaration anormal
+- Garage ou expert suspecté de fraudes passées
+- Récurrence AGIRA (3+ sinistres en 36 mois)
+- Description vague pour la gravité déclarée
+
+CONTRAINTE ÉTHIQUE : tu produis une AIDE À LA DÉCISION. La validation humaine est obligatoire.
+
+Réponds UNIQUEMENT avec ce JSON (pas de texte autour) :
+{
+  "score_fraude": 0.XX,
+  "niveau_risque": "FAIBLE | MODÉRÉ | ÉLEVÉ",
+  "motifs_principaux": ["motif 1", "motif 2", "motif 3"],
+  "signaux_reseau": ["signal 1"],
+  "recommandation": "action concrète et immédiate"
+}`;
+
+// ── Utils ──────────────────────────────────────────────────────────
+function getKey() { return window.ANTHROPIC_API_KEY || ''; }
+
+function collectForm() {
+  const g = id => document.getElementById(id);
+  return {
+    claim_id:               g('claim_id').value.trim(),
+    insured_id:             g('insured_id').value.trim(),
+    incident_type:          g('incident_type').value,
+    incident_severity:      g('incident_severity').value,
+    incident_date:          g('incident_date').value,
+    incident_hour:          parseInt(g('incident_hour').value),
+    incident_day_of_week:   parseInt(g('incident_day_of_week').value),
+    declaration_delay_days: parseInt(g('declaration_delay_days').value),
+    region:                 g('region').value,
+    vehicle_brand:          g('vehicle_brand').value.trim(),
+    vehicle_age:            parseInt(g('vehicle_age').value),
+    total_claim_amount:     parseFloat(g('total_claim_amount').value),
+    driver_age:             parseInt(g('driver_age').value),
+    months_as_customer:     parseInt(g('months_as_customer').value),
+    annual_income:          parseFloat(g('annual_income').value),
+    profession:             g('profession').value.trim(),
+    witnesses:              parseInt(g('witnesses').value),
+    prior_claims:           parseInt(g('prior_claims').value),
+    bodily_injuries:        parseInt(g('bodily_injuries').value),
+    police_report:          g('police_report').value,
+    garage_id:              g('garage_id').value.trim(),
+    expert_id:              g('expert_id').value.trim(),
+    claims_last_36m_agira:  parseInt(g('claims_last_36m_agira').value),
+    incident_description:   g('incident_description').value.trim(),
+  };
+}
+
+// ── Score via FastAPI ──────────────────────────────────────────────
+async function fetchScore(claim) {
+  const resp = await fetch(`${API_BASE}/score`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(claim),
+  });
+  if (!resp.ok) {
+    const txt = await resp.text();
+    throw new Error(`FastAPI /score → ${resp.status}: ${txt}`);
+  }
+  return resp.json();
+}
+
+// ── Analyse via Anthropic ──────────────────────────────────────────
+async function fetchLLM(claim, scored) {
+  const key = getKey();
+  if (!key) throw new Error(
+    'Clé Anthropic manquante.\n' +
+    'Dans la console DevTools (F12) tapez :\n' +
+    'window.ANTHROPIC_API_KEY = "sk-ant-api03-..."'
+  );
+
+  const userMsg = JSON.stringify({
+    sinistre: claim,
+    score_rag:     scored.score_rag,
+    score_network: scored.score_network,
+    score_final:   scored.score_final,
+    niveau:        scored.risk_level,
+    voisins_rag:   scored.neighbors,
+  }, null, 2);
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-allow-browser': 'true',
+    },
+    body: JSON.stringify({
+      model: CLAUDE_MODEL,
+      max_tokens: 900,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: userMsg }],
+    }),
+  });
+
+  if (!resp.ok) {
+    const txt = await resp.text();
+    let msg = `Anthropic API → ${resp.status}`;
+    try { msg += ': ' + JSON.parse(txt).error?.message; } catch {}
+    throw new Error(msg);
+  }
+
+  const data = await resp.json();
+  return { text: data.content[0].text, usage: data.usage };
+}
+
+// ── Render ─────────────────────────────────────────────────────────
+function updateGauge(score) {
+  const arc   = document.getElementById('gauge-arc');
+  const label = document.getElementById('gauge-text');
+  const total = 141.3;
+  const offset = total - score * total;
+  arc.style.strokeDashoffset = offset;
+  // Color
+  const color = score >= 0.7 ? '#DC2626' : score >= 0.4 ? '#D97706' : '#16A34A';
+  arc.style.stroke = color;
+  label.textContent = score.toFixed(2);
+}
+
+function updateRiskBadge(level) {
+  const el = document.getElementById('risk-badge');
+  const clean = level.normalize('NFD').replace(/[̀-ͯ]/g, '')
+                     .replace('É','E').replace('é','e');
+  const key = clean.includes('ELEV') ? 'ELEVE'
+            : clean.includes('MOD')  ? 'MODERE' : 'FAIBLE';
+  el.className = `risk-badge risk-${key}`;
+  el.textContent = level;
+}
+
+function renderNeighbors(neighbors) {
+  const tbody = document.getElementById('neighbors-body');
+  tbody.innerHTML = neighbors.map(n => {
+    const pct  = (n.similarity * 100).toFixed(1);
+    const fraud = n.fraud_label === 1;
+    return `<tr>
+      <td><code style="font-size:11px">${n.claim_id}</code></td>
+      <td class="${fraud ? 'fraud-yes' : 'fraud-no'}">${fraud ? '⚠ Fraude' : '✓ Légitime'}</td>
+      <td><code style="font-size:11px">${n.garage_id}</code></td>
+      <td>
+        <div class="sim-bar">
+          <div class="sim-bar-bg"><div class="sim-bar-fill" style="width:${pct}%"></div></div>
+          <span style="font-size:11px;color:#64748B;white-space:nowrap">${pct}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function syntaxHighlight(json) {
+  return json
+    .replace(/("[\w_]+")\s*:/g, '<span class="json-key">$1</span>:')
+    .replace(/:\s*(".*?")/g,    ': <span class="json-str">$1</span>')
+    .replace(/:\s*(\d+\.?\d*)/g,':<span class="json-num"> $1</span>')
+    .replace(/:\s*(true|false)/g,':<span class="json-bool"> $1</span>');
+}
+
+function renderLLM(text) {
+  const out  = document.getElementById('llm-output');
+  const jblk = document.getElementById('llm-json');
+
+  // Try to extract JSON from the response
+  const match = text.match(/\{[\s\S]*\}/);
+  if (match) {
+    try {
+      const parsed = JSON.parse(match[0]);
+      // Render structured summary
+      const riskColor = parsed.niveau_risque?.includes('ÉLEVÉ') ? '#DC2626'
+                       : parsed.niveau_risque?.includes('MODÉRÉ') ? '#D97706' : '#16A34A';
+      out.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <span style="font-size:22px;font-weight:800;color:${riskColor}">${parsed.score_fraude?.toFixed(2) ?? '—'}</span>
+          <span style="background:${riskColor}18;color:${riskColor};border-radius:20px;padding:3px 12px;font-weight:700;font-size:12px">${parsed.niveau_risque ?? ''}</span>
+        </div>
+        <div style="margin-bottom:10px">
+          <div style="font-weight:600;font-size:11px;color:#64748B;text-transform:uppercase;margin-bottom:5px">Motifs principaux</div>
+          <ul style="padding-left:16px;display:flex;flex-direction:column;gap:3px">
+            ${(parsed.motifs_principaux ?? []).map(m => `<li style="color:#334155">${m}</li>`).join('')}
+          </ul>
+        </div>
+        ${parsed.signaux_reseau?.length ? `
+        <div style="margin-bottom:10px">
+          <div style="font-weight:600;font-size:11px;color:#64748B;text-transform:uppercase;margin-bottom:5px">Signaux réseau</div>
+          <ul style="padding-left:16px;display:flex;flex-direction:column;gap:3px">
+            ${parsed.signaux_reseau.map(s => `<li style="color:#DC2626">${s}</li>`).join('')}
+          </ul>
+        </div>` : ''}
+        <div style="background:#EEF2FF;border-left:3px solid #4F46E5;padding:10px 12px;border-radius:0 6px 6px 0">
+          <div style="font-weight:700;font-size:11px;color:#4F46E5;margin-bottom:3px">RECOMMANDATION</div>
+          <div style="color:#1E293B">${parsed.recommandation ?? ''}</div>
+        </div>`;
+      jblk.innerHTML = syntaxHighlight(JSON.stringify(parsed, null, 2));
+      jblk.style.display = 'block';
+      return;
+    } catch {}
+  }
+  // Fallback: show raw text
+  out.textContent = text;
+  jblk.style.display = 'none';
+}
+
+function showError(container, msg) {
+  container.style.display = 'block';
+  container.innerHTML = `<div class="error-box">⚠ ${msg.replace(/\n/g,'<br>')}</div>`;
+}
+
+// ── API health check ───────────────────────────────────────────────
+async function checkAPI() {
+  const el = document.getElementById('api-status');
+  try {
+    const r = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(3000) });
+    if (r.ok) {
+      const d = await r.json();
+      el.textContent = `🟢 API ok · ${d.vector_store.toLocaleString()} sinistres`;
+      el.style.background = 'rgba(34,197,94,.2)';
+    } else { throw new Error(r.status); }
+  } catch {
+    el.textContent = '🔴 API hors ligne (localhost:8000)';
+    el.style.background = 'rgba(239,68,68,.2)';
+  }
+}
+
+// ── Main form handler ──────────────────────────────────────────────
+document.getElementById('claim-form').addEventListener('submit', async e => {
+  e.preventDefault();
+
+  const btn      = document.getElementById('btn-submit');
+  const formErr  = document.getElementById('form-error');
+  const llmLoad  = document.getElementById('llm-loading');
+  const llmOut   = document.getElementById('llm-output');
+  const llmJson  = document.getElementById('llm-json');
+  const llmLat   = document.getElementById('llm-latency');
+
+  // Reset
+  formErr.style.display  = 'none';
+  llmOut.innerHTML       = '';
+  llmJson.style.display  = 'none';
+  llmLat.textContent     = '';
+
+  // Loading state
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Scoring en cours…';
+
+  const claim = collectForm();
+
+  try {
+    // ── Step 1 : FastAPI /score ──────────────────────────────
+    const t0     = Date.now();
+    const scored = await fetchScore(claim);
+    const latAPI = Date.now() - t0;
+
+    // Render scores
+    document.getElementById('results').style.display = 'flex';
+    document.getElementById('results').style.flexDirection = 'column';
+    document.getElementById('results').style.gap = '14px';
+
+    updateGauge(scored.score_final);
+    updateRiskBadge(scored.risk_level);
+    document.getElementById('score-rag').textContent = scored.score_rag.toFixed(3);
+    document.getElementById('score-net').textContent = scored.score_network.toFixed(3);
+    document.getElementById('score-lat').textContent = `${latAPI} ms`;
+    renderNeighbors(scored.neighbors);
+
+    // ── Step 2 : Anthropic LLM ──────────────────────────────
+    btn.innerHTML = '<div class="spinner"></div> Analyse LLM…';
+    llmLoad.style.display = 'block';
+    llmOut.innerHTML = '';
+
+    const t1     = Date.now();
+    const llm    = await fetchLLM(claim, scored);
+    const latLLM = Date.now() - t1;
+
+    llmLoad.style.display = 'none';
+    llmLat.textContent    = `${latLLM} ms · ${llm.usage?.output_tokens ?? '?'} tokens`;
+    renderLLM(llm.text);
+
+  } catch (err) {
+    llmLoad.style.display = 'none';
+    showError(formErr, err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M7 1.5C4 1.5 1.5 4 1.5 7S4 12.5 7 12.5 12.5 10 12.5 7 10 1.5 7 1.5z"
+            stroke="white" stroke-width="1.3"/>
+      <path d="M7 4.5v5M4.5 7h5" stroke="white" stroke-width="1.3" stroke-linecap="round"/>
+    </svg> Analyser le sinistre`;
+  }
+});
+
+// On load: check API health
+checkAPI();
+</script>
+</body>
+</html>
