@@ -191,8 +191,9 @@ Documentation interactive Swagger : [http://localhost:8000/docs](http://localhos
 |---|---|---|
 | `GET /health` | Statut du service | < 50 ms |
 | `POST /score` | Score hybride RAG + réseau, sans LLM | ~200 ms |
-| `POST /analyze` | Score + analyse Agent Expert LLM | ~2–4 s |
+| `POST /analyze` | Score + analyse Agent Expert LLM (Groq) | ~2–4 s |
 | `POST /analyze_with_judge` | Score + Expert + validation Juge | ~5–8 s |
+| `POST /proxy/anthropic` | Proxy CORS vers Anthropic API (utilisé par fraudscan.html) | ~2–4 s |
 
 ### Exemple de requête
 
@@ -240,38 +241,44 @@ curl -X POST http://localhost:8000/score \
 display_fraudscan()
 ```
 
-### Utilisation standalone (ouvrir directement le fichier)
+### Utilisation standalone
+
+Servir le fichier via un serveur HTTP local (obligatoire pour éviter les restrictions CORS du navigateur) :
 
 ```bash
-open fraudscan.html        # macOS
-xdg-open fraudscan.html    # Linux
+# Terminal 1 — serveur HTTP
+python3 -m http.server 3000
+
+# Terminal 2 — API FastAPI
+export GROQ_API_KEY="gsk_..."
+.venv/bin/python -m uvicorn app:app --port 8000
 ```
+
+Ouvrir dans le navigateur : `http://localhost:3000/fraudscan.html`
 
 ### Prérequis
 
-1. L'API doit tourner localement :
-   ```bash
-   export GROQ_API_KEY="gsk_..."
-   .venv/bin/python -m uvicorn app:app --port 8000
-   ```
+1. Les deux serveurs ci-dessus doivent tourner.
 2. Dans la console DevTools du navigateur (**F12**) :
    ```js
    window.ANTHROPIC_API_KEY = "sk-ant-api03-..."
    ```
+   *(à refaire à chaque rechargement de page)*
 
 ### Fonctionnement
 
 | Étape | Appel | Résultat |
 |---|---|---|
 | 1 | `POST http://localhost:8000/score` | Jauge score final, voisins RAG, scores RAG/réseau |
-| 2 | `POST https://api.anthropic.com/v1/messages` | Analyse Expert Claude Haiku : motifs, signaux, recommandation |
+| 2 | `POST http://localhost:8000/proxy/anthropic` → `api.anthropic.com` | Analyse Expert Claude Haiku : motifs, signaux, recommandation |
+
+> **Note :** l'appel Anthropic transite par le proxy FastAPI pour éviter les blocages CORS du navigateur.
 
 ### Prévisualisation en ligne (GitLab Pages)
 
-Le fichier est accessible en lecture depuis le dépôt. Pour le **rendre navigable en ligne**, GitLab Pages est configuré via `.gitlab-ci.yml` — l'interface sera alors disponible à :
 `https://p2408012.pages.univ-lyon1.fr/fraude_auto_rag/`
 
-> **Note :** en ligne, seule la partie Anthropic LLM fonctionne. Le scoring RAG nécessite l'API locale (`localhost:8000`).
+> **Note :** en ligne, le scoring RAG et l'analyse LLM nécessitent tous les deux l'API locale (`localhost:8000`).
 
 ---
 
