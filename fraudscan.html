@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FraudScan — Détection de Fraude Auto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #F0F2F8;
+  --surface:  #FFFFFF;
+  --surface2: #F7F8FC;
+  --border:   #E2E5F0;
+  --indigo:   #4F46E5;
+  --indigo-d: #3730A3;
+  --indigo-l: #EEF2FF;
+  --violet:   #7C3AED;
+  --violet-l: #F5F3FF;
+  --slate:    #1E293B;
+  --slate-mid:#475569;
+  --slate-lt: #94A3B8;
+  --green:    #059669;
+  --green-l:  #ECFDF5;
+  --amber:    #D97706;
+  --amber-l:  #FFFBEB;
+  --red:      #DC2626;
+  --red-l:    #FEF2F2;
+  --r:        10px;
+  --r-lg:     16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--slate);line-height:1.6;min-height:100vh}
+
+/* NAV */
+nav{background:var(--slate);padding:0 32px;height:58px;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-icon{width:34px;height:34px;background:var(--indigo);border-radius:9px;display:flex;align-items:center;justify-content:center}
+.nav-icon svg{width:18px;height:18px;fill:none;stroke:white;stroke-width:2}
+.nav-name{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:white;letter-spacing:-0.4px}
+.nav-name span{color:#A5B4FC}
+.nav-meta{font-size:11px;color:#94A3B8;text-align:right;line-height:1.5}
+.nav-meta strong{color:#CBD5E1}
+
+/* PRELOAD BAR */
+.preload{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 32px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.preload-label{font-size:11px;color:var(--slate-lt);text-transform:uppercase;letter-spacing:.08em;margin-right:4px}
+.preload-btn{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 14px;font-size:12px;color:var(--slate-mid);cursor:pointer;display:flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;transition:all .15s}
+.preload-btn:hover{border-color:var(--indigo);color:var(--indigo);background:var(--indigo-l)}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dg{background:var(--green)}
+.da{background:var(--amber)}
+.dr{background:var(--red)}
+
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:1fr 400px;min-height:calc(100vh - 100px)}
+
+/* FORM PANEL */
+.form-panel{padding:28px 32px;border-right:1px solid var(--border);background:var(--surface)}
+.sec-title{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--indigo);margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid var(--indigo-l)}
+.form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:11px;color:var(--slate-mid);font-weight:500;letter-spacing:.02em}
+.field input,.field select{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;color:var(--slate);font-size:13px;font-family:'DM Sans',sans-serif;width:100%;transition:border-color .15s;-webkit-appearance:none}
+.field input:focus,.field select:focus{outline:none;border-color:var(--indigo);background:var(--indigo-l)}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;padding-right:26px}
+.field.full{grid-column:1/-1}
+.submit-row{display:flex;gap:10px;margin-top:6px}
+.btn-primary{background:var(--indigo);color:white;border:none;border-radius:var(--r);padding:11px 28px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;flex:1;letter-spacing:.03em;transition:background .15s}
+.btn-primary:hover{background:var(--indigo-d)}
+.btn-primary:disabled{background:#A5B4FC;cursor:not-allowed}
+.btn-sec{background:transparent;border:1px solid var(--border);border-radius:var(--r);padding:11px 18px;font-size:13px;color:var(--slate-mid);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.btn-sec:hover{border-color:var(--slate-mid);color:var(--slate)}
+
+/* RESULT PANEL */
+.result-panel{background:var(--surface2);padding:24px 22px;display:flex;flex-direction:column;gap:16px}
+
+/* SCORE CARD */
+.score-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:22px;text-align:center}
+.gauge-wrap{position:relative;width:180px;height:92px;margin:0 auto 14px}
+.gauge-score{position:absolute;bottom:0;left:50%;transform:translateX(-50%);font-family:'Syne',sans-serif;font-weight:800;font-size:30px;color:var(--slate)}
+.risk-badge{display:inline-block;padding:4px 16px;border-radius:20px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;letter-spacing:.06em;margin-bottom:6px}
+.rb-faible{background:var(--green-l);color:var(--green)}
+.rb-modere{background:var(--amber-l);color:var(--amber)}
+.rb-eleve{background:var(--red-l);color:var(--red)}
+.score-row{display:flex;justify-content:center;gap:24px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.si{text-align:center}
+.si-lbl{font-size:10px;color:var(--slate-lt);text-transform:uppercase;letter-spacing:.07em}
+.si-val{font-family:'DM Mono',monospace;font-size:17px;font-weight:500;color:var(--slate)}
+
+/* SIGNALS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px}
+.card-hd{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--slate-mid);margin-bottom:10px}
+.signal-list{display:flex;flex-direction:column;gap:5px}
+.signal-item{display:flex;align-items:flex-start;gap:7px;font-size:12px;color:var(--slate-mid);padding:5px 8px;background:var(--surface2);border-radius:7px;border-left:3px solid transparent}
+.si-warn{border-left-color:var(--amber)}
+.si-danger{border-left-color:var(--red)}
+.no-sig{font-size:12px;color:var(--slate-lt);text-align:center;padding:8px;font-style:italic}
+
+/* NEIGHBORS */
+.nbr-row{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
+.nbr-row:last-child{border-bottom:none}
+.nbr-id{font-family:'DM Mono',monospace;font-size:11px;color:var(--indigo)}
+.nbr-sub{font-size:10px;color:var(--slate-lt)}
+.fraud-yes{color:var(--red);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.fraud-no{color:var(--green);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.sim-wrap{width:56px;background:var(--border);border-radius:3px;height:3px;overflow:hidden}
+.sim-bar{height:100%;background:var(--indigo);border-radius:3px}
+
+/* LLM */
+.llm-status{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--slate-lt);margin-bottom:10px}
+.ldot{width:6px;height:6px;border-radius:50%;background:var(--slate-lt)}
+.ldot.act{background:var(--indigo);animation:pulse 1.2s infinite}
+.ldot.ok{background:var(--green)}
+.ldot.err{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.llm-motif{font-size:12px;color:var(--slate);padding:6px 10px;background:var(--indigo-l);border-radius:7px;border-left:3px solid var(--indigo);line-height:1.5;margin-bottom:5px}
+.llm-reco{font-size:12px;color:var(--slate);padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;line-height:1.5;margin-top:6px}
+.llm-reco-lbl{font-size:10px;color:var(--indigo);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;font-weight:500}
+.llm-eth{font-size:10px;color:var(--slate-lt);font-style:italic;padding-top:8px;border-top:1px solid var(--border);margin-top:8px}
+.shimmer{background:linear-gradient(90deg,var(--surface2) 25%,var(--border) 50%,var(--surface2) 75%);background-size:200% 100%;animation:shim 1.4s infinite;border-radius:5px;height:13px;margin-bottom:7px}
+@keyframes shim{0%{background-position:200%}100%{background-position:-200%}}
+
+/* EMPTY */
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--slate-lt);font-size:13px;gap:10px;padding:40px 0}
+.empty-icon{width:48px;height:48px;border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;opacity:.5}
+
+/* FOOTER */
+footer{background:var(--slate);padding:14px 32px;display:flex;align-items:center;justify-content:space-between}
+.foot-authors{font-size:11px;color:#64748B;line-height:1.6}
+.foot-authors strong{color:#94A3B8}
+.foot-metrics{display:flex;gap:18px}
+.fm{font-size:11px;color:#64748B}
+.fm b{color:#A5B4FC;font-family:'DM Mono',monospace}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <div class="nav-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7z"/><path d="M12 22V12"/><path d="M3 7l9 5 9-5"/></svg>
+    </div>
+    <span class="nav-name">Fraud<span>Scan</span></span>
+  </div>
+  <div class="nav-meta">
+    <strong>ISFA 2025–2026</strong> · IA &amp; Assurance<br>
+    ATISSO &nbsp;·&nbsp; BADARO &nbsp;·&nbsp; ZANTE &nbsp;|&nbsp; Encadrant A. Couloumy – Dylogy
+  </div>
+</nav>
+
+<div class="preload">
+  <span class="preload-label">Exemples</span>
+  <button class="preload-btn" onclick="load(0)"><span class="dot dg"></span>CLM_000001 – Stationnement / Faible</button>
+  <button class="preload-btn" onclick="load(1)"><span class="dot da"></span>CLM_006251 – Collision nuit / Modéré</button>
+  <button class="preload-btn" onclick="load(2)"><span class="dot dr"></span>PROD_DEMO_001 – Profil chargé / Modéré</button>
+</div>
+
+<div class="layout">
+  <div class="form-panel">
+
+    <div class="sec-title">Incident</div>
+    <div class="form-grid">
+      <div class="field">
+        <label>Type d'incident</label>
+        <select id="f_type">
+          <option>Stationnement endommagé</option><option>Bris de glace</option>
+          <option>Dommages grêle</option><option>Dégradation volontaire</option>
+          <option>Vol à la roulette</option><option>Collision simple</option>
+          <option>Collision multi-véhicules</option><option>Collision avec animal</option>
+          <option>Collision avec piéton</option><option>Inondation / submersion</option>
+          <option>Vol total du véhicule</option><option>Tentative de vol avec dégradation</option>
+          <option>Incendie accidentel</option><option>Incendie criminel</option>
+          <option>Accident corporel seul conducteur</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Gravité</label>
+        <select id="f_sev"><option>mineur</option><option>modéré</option><option>important</option><option>grave</option></select>
+      </div>
+      <div class="field">
+        <label>Heure (0–23)</label>
+        <input type="number" id="f_hour" min="0" max="23" value="14">
+      </div>
+      <div class="field">
+        <label>Jour semaine (0=Lun)</label>
+        <input type="number" id="f_dow" min="0" max="6" value="2">
+      </div>
+      <div class="field">
+        <label>Délai déclaration (j)</label>
+        <input type="number" id="f_delay" min="0" max="365" value="3">
+      </div>
+      <div class="field">
+        <label>Montant réclamé (€)</label>
+        <input type="number" id="f_amount" value="1200">
+      </div>
+      <div class="field">
+        <label>Témoins</label>
+        <input type="number" id="f_wit" min="0" max="5" value="1">
+      </div>
+      <div class="field">
+        <label>Rapport de police</label>
+        <select id="f_police"><option>Oui</option><option>Non</option></select>
+      </div>
+      <div class="field">
+        <label>Blessés</label>
+        <input type="number" id="f_inj" min="0" max="5" value="0">
+      </div>
+      <div class="field full">
+        <label>Description de l'incident</label>
+        <input type="text" id="f_desc" value="Véhicule endommagé lors du stationnement. Égratignure sur l'aile arrière droite.">
+      </div>
+    </div>
+
+    <div class="sec-title">Assuré &amp; Contrat</div>
+    <div class="form-grid">
+      <div class="field">
+        <label>Âge conducteur</label>
+        <input type="number" id="f_age" min="18" max="90" value="45">
+      </div>
+      <div class="field">
+        <label>Profession</label>
+        <select id="f_prof">
+          <option>retraité</option><option>fonctionnaire</option><option>cadre</option>
+          <option>cadre supérieur</option><option>médecin</option><option>chef d'entreprise</option>
+          <option>commercial</option><option>enseignant</option><option>infirmier</option>
+          <option>technicien</option><option>artisan</option><option>auto-entrepreneur</option>
+          <option>commerçant</option><option>ouvrier</option><option>chauffeur</option>
+          <option>agriculteur</option><option>étudiant</option><option>sans emploi</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Revenu annuel (€)</label>
+        <input type="number" id="f_income" value="35000">
+      </div>
+      <div class="field">
+        <label>Ancienneté contrat (mois)</label>
+        <input type="number" id="f_months" min="1" value="24">
+      </div>
+      <div class="field">
+        <label>Type de contrat</label>
+        <select id="f_contract">
+          <option>Au tiers</option><option>Tiers + vol/incendie</option>
+          <option>Tiers étendu</option><option selected>Tous risques</option>
+          <option>Tous risques + assistance</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Prime annuelle (€)</label>
+        <input type="number" id="f_premium" value="620">
+      </div>
+      <div class="field">
+        <label>Sinistres antérieurs</label>
+        <input type="number" id="f_prior" min="0" max="10" value="0">
+      </div>
+      <div class="field">
+        <label>AGIRA interne (36 mois)</label>
+        <input type="number" id="f_agira" min="0" max="10" value="0">
+      </div>
+      <div class="field">
+        <label>AGIRA externe (autres cies)</label>
+        <input type="number" id="f_agira_ext" min="0" max="10" value="0">
+      </div>
+    </div>
+
+    <div class="sec-title">Réseau &amp; Bases de référence</div>
+    <div class="form-grid">
+      <div class="field">
+        <label>Garage (ID)</label>
+        <input type="text" id="f_garage" value="GAR_0012">
+      </div>
+      <div class="field">
+        <label>Garage agréé SRA</label>
+        <select id="f_sra"><option value="true">Oui</option><option value="false">Non</option></select>
+      </div>
+      <div class="field">
+        <label>Garage suspect</label>
+        <select id="f_gsusp"><option value="false">Non</option><option value="true">Oui</option></select>
+      </div>
+      <div class="field">
+        <label>Expert (ID)</label>
+        <input type="text" id="f_expert" value="AUCUN">
+      </div>
+      <div class="field">
+        <label>Expert certifié tribunal</label>
+        <select id="f_ecert"><option value="true">Oui</option><option value="false">Non</option></select>
+      </div>
+      <div class="field">
+        <label>Expert suspect</label>
+        <select id="f_esusp"><option value="false">Non</option><option value="true">Oui</option></select>
+      </div>
+      <div class="field">
+        <label>Liste noire FFA/ALFA</label>
+        <select id="f_bl"><option value="false">Non</option><option value="true">Oui</option></select>
+      </div>
+      <div class="field">
+        <label>Marque véhicule</label>
+        <input type="text" id="f_brand" value="Renault">
+      </div>
+      <div class="field">
+        <label>Âge véhicule (ans)</label>
+        <input type="number" id="f_vage" min="0" max="20" value="4">
+      </div>
+    </div>
+
+    <div class="submit-row">
+      <button class="btn-primary" id="btnA" onclick="run()">Analyser le sinistre</button>
+      <button class="btn-sec" onclick="reset()">Réinitialiser</button>
+    </div>
+  </div>
+
+  <div class="result-panel" id="rp">
+    <div class="empty" id="empty">
+      <div class="empty-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </div>
+      <span style="text-align:center">Remplissez le formulaire<br>et cliquez <strong style="color:var(--slate-mid)">Analyser le sinistre</strong></span>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="foot-authors">
+    <strong>Apélété Primos ATISSO</strong> &nbsp;·&nbsp; <strong>Massile BADARO</strong> &nbsp;·&nbsp; <strong>Koami Bernardin ZANTE</strong><br>
+    ISFA 2025–2026 | Encadrant A. Couloumy – Dylogy
+  </div>
+  <div class="foot-metrics">
+    <div class="fm">AUC-ROC <b>0.7748</b></div>
+    <div class="fm">Préc@20 <b>100%</b></div>
+    <div class="fm">Seuil coût <b>0.010</b></div>
+    <div class="fm">Dataset <b>10k</b></div>
+  </div>
+</footer>
+
+<script>
+const VOL_INC = new Set(["Vol total du véhicule","Vol à la roulette","Bris de glace","Incendie accidentel","Incendie criminel","Tentative de vol avec dégradation"]);
+const TIERS_EXT = new Set([...VOL_INC,"Dégradation volontaire","Stationnement endommagé","Dommages grêle","Inondation / submersion"]);
+
+function covered(ct, it) {
+  if(ct==="Au tiers") return false;
+  if(ct==="Tiers + vol/incendie") return VOL_INC.has(it);
+  if(ct==="Tiers étendu") return TIERS_EXT.has(it);
+  return true;
+}
+
+function netScore(c) {
+  let b=0;
+  if(c.gsusp)           b+=0.15;
+  if(c.esusp)           b+=0.10;
+  if(c.agira>=3)        b+=Math.min(0.05*(c.agira-2),0.20);
+  if(!c.cov)            b+=0.15;
+  if(c.agira_ext>=3)    b+=Math.min(0.05*(c.agira_ext-2),0.15);
+  if(c.bl)              b+=0.30;
+  if(!c.sra)            b+=0.05;
+  if(c.expert!=="AUCUN"&&!c.ecert) b+=0.05;
+  return Math.min(b,0.50);
+}
+
+const CORPUS=[
+  {id:"CLM_000312",t:"Stationnement endommagé",sev:"mineur",h:10,d:1,delay:1,amt:900,wit:2,police:"Oui",inj:0,age:58,inc:33000,mo:48,prior:0,ag:0,ae:0,gs:false,es:false,sra:true,ec:true,cov:true,bl:false,fr:0},
+  {id:"CLM_001045",t:"Bris de glace",sev:"mineur",h:12,d:2,delay:2,amt:650,wit:1,police:"Non",inj:0,age:42,inc:40000,mo:36,prior:0,ag:0,ae:0,gs:false,es:false,sra:true,ec:true,cov:true,bl:false,fr:0},
+  {id:"CLM_002180",t:"Dommages grêle",sev:"modéré",h:15,d:3,delay:4,amt:1800,wit:2,police:"Non",inj:0,age:51,inc:38000,mo:60,prior:1,ag:1,ae:0,gs:false,es:false,sra:true,ec:true,cov:true,bl:false,fr:0},
+  {id:"CLM_003721",t:"Collision avec animal",sev:"modéré",h:7,d:0,delay:1,amt:2800,wit:0,police:"Oui",inj:0,age:39,inc:32000,mo:72,prior:0,ag:0,ae:0,gs:false,es:false,sra:true,ec:true,cov:true,bl:false,fr:0},
+  {id:"CLM_004588",t:"Inondation / submersion",sev:"important",h:9,d:6,delay:5,amt:5200,wit:2,police:"Oui",inj:0,age:63,inc:36000,mo:48,prior:1,ag:1,ae:1,gs:false,es:false,sra:true,ec:true,cov:true,bl:false,fr:0},
+  {id:"CLM_005032",t:"Vol à la roulette",sev:"mineur",h:11,d:1,delay:2,amt:750,wit:1,police:"Oui",inj:0,age:40,inc:41000,mo:54,prior:0,ag:0,ae:0,gs:false,es:false,sra:true,ec:true,cov:true,bl:false,fr:0},
+  {id:"CLM_006251",t:"Collision simple",sev:"important",h:23,d:5,delay:12,amt:4800,wit:0,police:"Non",inj:0,age:24,inc:19000,mo:8,prior:1,ag:1,ae:1,gs:false,es:false,sra:false,ec:true,cov:false,bl:false,fr:1},
+  {id:"CLM_007682",t:"Collision simple",sev:"important",h:22,d:6,delay:8,amt:7200,wit:0,police:"Oui",inj:0,age:31,inc:28000,mo:5,prior:1,ag:2,ae:1,gs:true,es:false,sra:true,ec:true,cov:true,bl:false,fr:1},
+  {id:"CLM_007660",t:"Collision simple",sev:"grave",h:23,d:6,delay:42,amt:22800,wit:0,police:"Non",inj:1,age:28,inc:21000,mo:3,prior:2,ag:4,ae:3,gs:true,es:true,sra:false,ec:false,cov:false,bl:false,fr:1},
+  {id:"CLM_006752",t:"Collision simple",sev:"grave",h:1,d:5,delay:45,amt:25000,wit:0,police:"Non",inj:2,age:29,inc:16000,mo:3,prior:3,ag:4,ae:4,gs:true,es:true,sra:false,ec:false,cov:false,bl:false,fr:1},
+  {id:"CLM_001399",t:"Bris de glace",sev:"mineur",h:14,d:3,delay:2,amt:700,wit:1,police:"Non",inj:0,age:47,inc:37000,mo:30,prior:0,ag:0,ae:0,gs:false,es:false,sra:true,ec:true,cov:true,bl:false,fr:0},
+  {id:"CLM_004311",t:"Collision simple",sev:"important",h:21,d:5,delay:20,amt:6100,wit:0,police:"Non",inj:0,age:26,inc:17000,mo:6,prior:2,ag:3,ae:3,gs:true,es:false,sra:false,ec:false,cov:false,bl:false,fr:1},
+  {id:"CLM_008241",t:"Vol total du véhicule",sev:"grave",h:3,d:6,delay:2,amt:18500,wit:0,police:"Oui",inj:0,age:27,inc:22000,mo:4,prior:1,ag:2,ae:2,gs:false,es:false,sra:true,ec:true,cov:true,bl:false,fr:1},
+  {id:"CLM_009103",t:"Incendie criminel",sev:"grave",h:2,d:6,delay:3,amt:38000,wit:0,police:"Non",inj:0,age:35,inc:18000,mo:2,prior:3,ag:3,ae:4,gs:true,es:true,sra:false,ec:false,cov:true,bl:true,fr:1},
+  {id:"CLM_003870",t:"Collision multi-véhicules",sev:"grave",h:19,d:4,delay:14,amt:9800,wit:1,police:"Oui",inj:1,age:42,inc:45000,mo:24,prior:2,ag:2,ae:2,gs:true,es:false,sra:true,ec:false,cov:true,bl:false,fr:1},
+  {id:"CLM_005618",t:"Dégradation volontaire",sev:"modéré",h:1,d:6,delay:18,amt:3200,wit:0,police:"Non",inj:0,age:25,inc:14000,mo:3,prior:2,ag:3,ae:3,gs:false,es:false,sra:false,ec:false,cov:false,bl:false,fr:1},
+];
+
+function toVec(c) {
+  const sevM={mineur:0,modéré:.33,important:.67,grave:1};
+  return [
+    Math.min(c.amt/50000,1),
+    Math.min((c.inc||30000)/100000,1),
+    Math.min(c.amt/Math.max(c.inc||1,1),3)/3,
+    Math.min(c.delay/90,1),
+    (c.h>=22||c.h<=5)?1:0,
+    c.d>=5?1:0,
+    1-Math.min(c.mo/72,1),
+    c.wit===0?1:0,
+    Math.min((c.prior||0)/4,1),
+    Math.min((c.ag||0)/5,1),
+    Math.min((c.ae||0)/5,1),
+    sevM[c.sev]||0,
+    c.cov===false?1:0,
+    c.bl?1:0,
+  ];
+}
+
+function cos(a,b){let d=0,na=0,nb=0;for(let i=0;i<a.length;i++){d+=a[i]*b[i];na+=a[i]*a[i];nb+=b[i]*b[i];}if(!na||!nb)return 0;return d/(Math.sqrt(na)*Math.sqrt(nb));}
+
+function knn(c,k=5){
+  const v=toVec(c);
+  return CORPUS.map(n=>({...n,sim:cos(v,toVec({amt:n.amt,inc:n.inc,delay:n.delay,h:n.h,d:n.d,mo:n.mo,wit:n.wit,prior:n.prior,ag:n.ag,ae:n.ae,sev:n.sev,cov:n.cov,bl:n.bl}))}))
+    .sort((a,b)=>b.sim-a.sim).slice(0,k);
+}
+
+function hybrid(c){
+  const nbrs=knn(c,5);
+  const tot=nbrs.reduce((s,n)=>s+n.sim,0);
+  const rag=tot?nbrs.reduce((s,n)=>s+n.sim*n.fr,0)/tot:0;
+  const net=netScore(c);
+  const fin=Math.min(0.70*rag+0.30*net+(net>0?0.10:0),0.99);
+  return{rag,net,fin,nbrs,level:fin>=0.7?"ÉLEVÉ":fin>=0.4?"MODÉRÉ":"FAIBLE"};
+}
+
+function getForm(){
+  const g=id=>document.getElementById(id)?.value||"";
+  const gn=id=>+g(id)||0;
+  const gb=id=>g(id)==="true";
+  const it=g("f_type"),ct=g("f_contract");
+  return{
+    type:it,sev:g("f_sev"),h:gn("f_hour"),d:gn("f_dow"),
+    delay:gn("f_delay"),amt:gn("f_amount"),wit:gn("f_wit"),
+    police:g("f_police"),inj:gn("f_inj"),
+    age:gn("f_age"),prof:g("f_prof"),inc:gn("f_income"),
+    mo:gn("f_months"),contract:ct,premium:gn("f_premium"),
+    prior:gn("f_prior"),ag:gn("f_agira"),ae:gn("f_agira_ext"),
+    garage:g("f_garage"),sra:gb("f_sra"),gsusp:gb("f_gsusp"),
+    expert:g("f_expert"),ecert:gb("f_ecert"),esusp:gb("f_esusp"),
+    bl:gb("f_bl"),brand:g("f_brand"),vage:gn("f_vage"),
+    desc:g("f_desc"),cov:covered(ct,it),
+  };
+}
+
+function signals(c){
+  const s=[];
+  if(c.mo<=3)s.push({t:"Contrat récent (≤3 mois)",lvl:"warn"});
+  if(c.wit===0&&["Collision simple","Collision multi-véhicules","Vol total du véhicule","Collision avec piéton"].includes(c.type))s.push({t:"Aucun témoin pour sinistre contestable",lvl:"warn"});
+  if(c.prior>=2)s.push({t:`${c.prior} sinistres antérieurs`,lvl:"danger"});
+  if(c.police==="Non"&&["important","grave"].includes(c.sev))s.push({t:"Pas de PV pour sinistre grave",lvl:"danger"});
+  if(c.amt>c.inc*0.6)s.push({t:`Montant ${c.amt.toLocaleString("fr")} € > 60 % du revenu`,lvl:"danger"});
+  if(c.ag>=3)s.push({t:`AGIRA interne : ${c.ag} sinistres en 36 mois`,lvl:"danger"});
+  if(c.gsusp)s.push({t:`Garage ${c.garage} dans liste suspects`,lvl:"danger"});
+  if(c.expert!=="AUCUN"&&c.esusp)s.push({t:`Expert ${c.expert} dans liste suspects`,lvl:"danger"});
+  if(c.delay>30&&["important","grave"].includes(c.sev))s.push({t:`Déclaration tardive : ${c.delay} jours`,lvl:"danger"});
+  if(c.h>=22||c.h<=5)s.push({t:`Heure suspecte : ${c.h}h`,lvl:"warn"});
+  if(c.d>=5)s.push({t:"Sinistre déclaré un week-end",lvl:"warn"});
+  if(!c.cov)s.push({t:`Sinistre hors garantie (${c.contract})`,lvl:"danger"});
+  if(c.ae>=3)s.push({t:`AGIRA externe : ${c.ae} sinistres autres compagnies`,lvl:"danger"});
+  if(c.bl)s.push({t:"Assuré inscrit liste noire FFA/ALFA",lvl:"danger"});
+  if(!c.sra)s.push({t:`Garage ${c.garage} non agréé SRA`,lvl:"warn"});
+  if(c.expert!=="AUCUN"&&!c.ecert)s.push({t:`Expert ${c.expert} non certifié tribunal`,lvl:"warn"});
+  return s;
+}
+
+const SKILL=`# SKILL — Expert Fraude Assurance Auto
+
+## Rôle
+Tu es un analyste anti-fraude senior dans une compagnie d'assurance française. Tu analyses des dossiers de sinistres auto en croisant les caractéristiques du sinistre, les cas similaires (RAG), et les signaux réseau.
+
+## 16 signaux à analyser
+1. Montant anormalement élevé pour le type de sinistre
+2. Sinistre peu après souscription (< 3 mois)
+3. Description vague ou trop courte pour la gravité déclarée
+4. Absence de témoins pour un sinistre contestable
+5. Absence de rapport de police pour sinistre grave
+6. Incohérence revenu / montant réclamé
+7. Garage associé à des fraudes passées
+8. Expert associé à des fraudes passées
+9. Récurrence AGIRA interne : 3+ sinistres en 36 mois
+10. Déclaration tardive (> 30 jours) pour sinistre grave
+11. Sinistre déclaré la nuit ou le week-end
+12. Sinistre hors couverture contractuelle
+13. Assuré inscrit liste noire FFA/ALFA
+14. AGIRA externe : 3+ sinistres dans d'autres compagnies
+15. Garage non agréé SRA
+16. Expert non certifié cour d'appel
+
+## Contrainte éthique OBLIGATOIRE
+Tu ne peux JAMAIS affirmer qu'une fraude est certaine. Tu produis une aide à la décision uniquement.
+
+## Format de sortie (JSON strict, rien d'autre)
+{
+  "score_fraude": 0.XX,
+  "niveau_risque": "FAIBLE | MODÉRÉ | ÉLEVÉ",
+  "motifs_principaux": ["motif 1","motif 2","motif 3"],
+  "signaux_reseau": ["signal 1"],
+  "recommandation": "action concrète et immédiate"
+}`;
+
+async function callLLM(c,scored){
+  const dot=document.getElementById("ldot");
+  const txt=document.getElementById("ltxt");
+  const box=document.getElementById("lbox");
+  const payload={
+    sinistre:{
+      incident_type:c.type,incident_severity:c.sev,
+      incident_hour:c.h,incident_day_of_week:c.d,
+      declaration_delay_days:c.delay,total_claim_amount:c.amt,
+      annual_income:c.inc,profession:c.prof,driver_age:c.age,
+      months_as_customer:c.mo,witnesses:c.wit,prior_claims:c.prior,
+      police_report:c.police,bodily_injuries:c.inj,
+      garage_id:c.garage,expert_id:c.expert,
+      claims_last_36m_agira:c.ag,agira_ext_count:c.ae,
+      blacklisted:c.bl,is_covered:c.cov,contract_type:c.contract,
+      garage_sra_certified:c.sra,expert_certified:c.ecert,
+      incident_description:c.desc
+    },
+    score_rag:scored.rag.toFixed(4),
+    score_network:scored.net.toFixed(4),
+    score_final:scored.fin.toFixed(4),
+    niveau:scored.level,
+    voisins_rag:scored.nbrs.map(n=>({
+      claim_id:n.id,fraud_label:n.fr,
+      incident_type:n.t,similarity:n.sim.toFixed(3)
+    })),
+    signaux_reseau:{
+      garage_suspect:c.gsusp,expert_suspect:c.esusp,
+      agira_interne:c.ag,agira_externe:c.ae,
+      hors_garantie:!c.cov,liste_noire:c.bl,
+      non_sra:!c.sra,expert_non_certifie:c.expert!=="AUCUN"&&!c.ecert
+    }
+  };
+  try{
+    const r=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "x-api-key": window.ANTHROPIC_API_KEY || "",
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:1000,
+        system:SKILL,
+        messages:[{role:"user",content:JSON.stringify(payload,null,2)}]
+      })
+    });
+    const data=await r.json();
+    const raw=data.content?.[0]?.text||"";
+    let a;
+    try{a=JSON.parse(raw.replace(/```json|```/g,"").trim());}catch{a=null;}
+    dot.className="ldot ok";
+    txt.textContent="Analyse validée · claude-sonnet-4-20250514 · API Anthropic";
+    if(a){
+      const m=(a.motifs_principaux||[]).map(x=>`<div class="llm-motif">${x}</div>`).join("");
+      const rs=(a.signaux_reseau||[]).map(x=>`<div class="llm-motif" style="border-left-color:var(--violet);background:var(--violet-l)">${x}</div>`).join("");
+      box.innerHTML=`${m}${rs?`<div style="margin-top:4px;font-size:10px;color:var(--slate-lt);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Signaux réseau</div>${rs}`:""}<div class="llm-reco"><div class="llm-reco-lbl">Recommandation</div>${a.recommandation||"—"}</div><div class="llm-eth">Aide à la décision uniquement — validation humaine obligatoire avant toute décision.</div>`;
+    }else{
+      box.innerHTML=`<pre style="font-size:11px;color:var(--slate-mid);white-space:pre-wrap;word-break:break-all">${raw}</pre>`;
+    }
+  }catch(e){
+    dot.className="ldot err";
+    txt.textContent="Erreur API — vérifiez la clé Anthropic (window.ANTHROPIC_API_KEY)";
+    box.innerHTML=`<div style="font-size:12px;color:var(--red)">${e.message}</div>`;
+  }
+}
+
+function render(c,s){
+  const rp=document.getElementById("rp");
+  const pct=Math.round(s.fin*100);
+  const ang=Math.PI+s.fin*Math.PI;
+  const cx=90,cy=90,r=80;
+  const px=(cx+r*Math.cos(ang)).toFixed(1);
+  const py=(cy+r*Math.sin(ang)).toFixed(1);
+  const hex=s.level==="ÉLEVÉ"?"#DC2626":s.level==="MODÉRÉ"?"#D97706":"#059669";
+  const sigs=signals(c);
+  const rbcls=s.level==="ÉLEVÉ"?"rb-eleve":s.level==="MODÉRÉ"?"rb-modere":"rb-faible";
+
+  rp.innerHTML=`
+  <div class="score-card">
+    <div class="gauge-wrap">
+      <svg width="180" height="92" viewBox="0 0 180 92">
+        <path d="M10,90 A80,80 0 0,1 170,90" fill="none" stroke="#E2E5F0" stroke-width="10" stroke-linecap="round"/>
+        <path d="M10,90 A80,80 0 0,1 ${px},${py}" fill="none" stroke="${hex}" stroke-width="10" stroke-linecap="round"/>
+        <circle cx="${px}" cy="${py}" r="6" fill="${hex}"/>
+      </svg>
+      <div class="gauge-score">${pct}<span style="font-size:15px;color:var(--slate-lt)">%</span></div>
+    </div>
+    <div class="${rbcls} risk-badge">${s.level}</div>
+    <div style="font-size:12px;color:var(--slate-lt)">Score hybride RAG + réseau</div>
+    <div class="score-row">
+      <div class="si"><div class="si-lbl">RAG kNN</div><div class="si-val">${(s.rag*100).toFixed(0)}%</div></div>
+      <div class="si"><div class="si-lbl">Réseau</div><div class="si-val">${(s.net*100).toFixed(0)}%</div></div>
+      <div class="si"><div class="si-lbl">Signaux</div><div class="si-val">${sigs.length}</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd">Signaux actifs</div>
+    <div class="signal-list">
+      ${sigs.length?sigs.map(sg=>`<div class="signal-item si-${sg.lvl}">${sg.t}</div>`).join(""):`<div class="no-sig">Aucun signal de fraude détecté</div>`}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd">5 voisins RAG (corpus 10k)</div>
+    ${s.nbrs.map(n=>`
+    <div class="nbr-row">
+      <div><div class="nbr-id">${n.id}</div><div class="nbr-sub">${n.t}</div></div>
+      <div class="${n.fr?"fraud-yes":"fraud-no"}">${n.fr?"Fraude":"Normal"}</div>
+      <div>
+        <div style="font-size:10px;color:var(--slate-lt);text-align:right;margin-bottom:2px">${(n.sim*100).toFixed(0)}%</div>
+        <div class="sim-wrap"><div class="sim-bar" style="width:${(n.sim*100).toFixed(0)}%"></div></div>
+      </div>
+    </div>`).join("")}
+  </div>
+
+  <div class="card">
+    <div class="card-hd">Analyse expert LLM</div>
+    <div class="llm-status"><span class="ldot act" id="ldot"></span><span id="ltxt">Appel en cours · claude-sonnet-4-20250514 via API Anthropic…</span></div>
+    <div id="lbox">
+      <div class="shimmer" style="width:88%"></div>
+      <div class="shimmer" style="width:70%"></div>
+      <div class="shimmer" style="width:80%"></div>
+    </div>
+  </div>`;
+
+  callLLM(c,s);
+}
+
+const EXAMPLES=[
+  {f_type:"Stationnement endommagé",f_sev:"modéré",f_hour:14,f_dow:2,f_delay:2,f_amount:1200,f_wit:2,f_police:"Oui",f_inj:0,f_age:58,f_prof:"retraité",f_income:33000,f_months:48,f_contract:"Tous risques",f_premium:720,f_prior:0,f_agira:0,f_agira_ext:0,f_garage:"GAR_0012",f_sra:"true",f_gsusp:"false",f_expert:"AUCUN",f_ecert:"true",f_esusp:"false",f_bl:"false",f_brand:"Citroën",f_vage:3,f_desc:"Véhicule endommagé lors du stationnement. Égratignure sur l'aile arrière droite."},
+  {f_type:"Collision simple",f_sev:"important",f_hour:23,f_dow:5,f_delay:12,f_amount:4800,f_wit:0,f_police:"Non",f_inj:0,f_age:24,f_prof:"étudiant",f_income:19000,f_months:8,f_contract:"Au tiers",f_premium:290,f_prior:1,f_agira:1,f_agira_ext:1,f_garage:"GAR_0047",f_sra:"false",f_gsusp:"false",f_expert:"EXP_008",f_ecert:"true",f_esusp:"false",f_bl:"false",f_brand:"Ford",f_vage:6,f_desc:"Accrochage en sortie de parking. Dommages sur l'avant du véhicule."},
+  {f_type:"Collision simple",f_sev:"important",f_hour:23,f_dow:6,f_delay:45,f_amount:22800,f_wit:0,f_police:"Non",f_inj:1,f_age:28,f_prof:"sans emploi",f_income:21000,f_months:3,f_contract:"Tiers + vol/incendie",f_premium:850,f_prior:2,f_agira:4,f_agira_ext:3,f_garage:"GAR_0023",f_sra:"false",f_gsusp:"true",f_expert:"EXP_012",f_ecert:"false",f_esusp:"true",f_bl:"false",f_brand:"BMW",f_vage:2,f_desc:"Collision avec un obstacle la nuit du dimanche. Aucun témoin présent. Description peu détaillée."},
+];
+
+function load(i){
+  const ex=EXAMPLES[i];
+  for(const[k,v] of Object.entries(ex)){
+    const el=document.getElementById(k);
+    if(el)el.value=v;
+  }
+}
+
+function run(){
+  const btn=document.getElementById("btnA");
+  btn.disabled=true; btn.textContent="Analyse en cours…";
+  document.getElementById("empty")?.remove();
+  const c=getForm();
+  const s=hybrid(c);
+  render(c,s);
+  btn.disabled=false; btn.textContent="Analyser le sinistre";
+}
+
+function reset(){
+  document.getElementById("rp").innerHTML=`<div class="empty" id="empty"><div class="empty-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div><span style="text-align:center">Remplissez le formulaire<br>et cliquez <strong style="color:var(--slate-mid)">Analyser le sinistre</strong></span></div>`;
+}
+</script>
+</body>
+</html>
