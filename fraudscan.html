@@ -652,26 +652,24 @@ async function fetchLLM(claim, scored) {
     voisins_rag:   scored.neighbors,
   }, null, 2);
 
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+  const resp = await fetch(`${API_BASE}/proxy/anthropic`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-allow-browser': 'true',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: CLAUDE_MODEL,
-      max_tokens: 900,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userMsg }],
+      api_key: key,
+      body: {
+        model: CLAUDE_MODEL,
+        max_tokens: 900,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: userMsg }],
+      },
     }),
   });
 
   if (!resp.ok) {
     const txt = await resp.text();
     let msg = `Anthropic API → ${resp.status}`;
-    try { msg += ': ' + JSON.parse(txt).error?.message; } catch {}
+    try { msg += ': ' + JSON.parse(txt).detail; } catch {}
     throw new Error(msg);
   }
 
