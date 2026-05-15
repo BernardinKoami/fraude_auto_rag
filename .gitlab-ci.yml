@@ -1,0 +1,13 @@
+# GitLab Pages — publie fraudscan.html comme site statique
+# URL résultante : https://p2408012.pages.univ-lyon1.fr/fraude_auto_rag/
+
+pages:
+  stage: deploy
+  script:
+    - mkdir -p public
+    - cp fraudscan.html public/index.html
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"

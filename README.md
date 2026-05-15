@@ -69,9 +69,10 @@ Sinistre entrant
 
 ```
 .
-├── Notebook_Final_v2.ipynb      # Notebook principal (12 modules)
+├── Notebook_Final_v2.ipynb      # Notebook principal (13 modules)
 ├── app.py                       # API REST FastAPI (3 endpoints)
 ├── pipeline.py                  # Module pipeline : RAG, scoring, agents LLM
+├── fraudscan.html               # Interface démo interactive (Module 13)
 ├── requirements.txt
 ├── README.md
 ├── skills/
@@ -166,6 +167,7 @@ jupyter notebook Notebook_Final_v2.ipynb
 | 6 | Juge LLM + boucle de correction | — |
 | 7–11 | Évaluation & métriques | `artifacts/performances_prod.png`, `artifacts/metrics_prod.json`, `artifacts/predictions_test_prod.csv` |
 | 12 | API FastAPI | `app.py` |
+| 13 | Interface HTML démo interactive | `fraudscan.html` |
 
 > **Note :** si `data/claims_10k.csv` et `data/ref_*.csv` sont déjà présents (cas GitLab),  
 > vous pouvez démarrer directement au **Module 3** pour reconstruire l'index vectoriel.
@@ -224,6 +226,52 @@ curl -X POST http://localhost:8000/score \
     "incident_description": "Collision sur autoroute de nuit."
   }'
 ```
+
+---
+
+## Interface démo — FraudScan HTML (Module 13)
+
+`fraudscan.html` est une interface web interactive affichant le pipeline complet sans quitter le navigateur.
+
+### Utilisation dans le notebook (recommandé)
+
+```python
+# Cellule 94 du notebook — affiche l'interface inline dans Jupyter
+display_fraudscan()
+```
+
+### Utilisation standalone (ouvrir directement le fichier)
+
+```bash
+open fraudscan.html        # macOS
+xdg-open fraudscan.html    # Linux
+```
+
+### Prérequis
+
+1. L'API doit tourner localement :
+   ```bash
+   export GROQ_API_KEY="gsk_..."
+   .venv/bin/python -m uvicorn app:app --port 8000
+   ```
+2. Dans la console DevTools du navigateur (**F12**) :
+   ```js
+   window.ANTHROPIC_API_KEY = "sk-ant-api03-..."
+   ```
+
+### Fonctionnement
+
+| Étape | Appel | Résultat |
+|---|---|---|
+| 1 | `POST http://localhost:8000/score` | Jauge score final, voisins RAG, scores RAG/réseau |
+| 2 | `POST https://api.anthropic.com/v1/messages` | Analyse Expert Claude Haiku : motifs, signaux, recommandation |
+
+### Prévisualisation en ligne (GitLab Pages)
+
+Le fichier est accessible en lecture depuis le dépôt. Pour le **rendre navigable en ligne**, GitLab Pages est configuré via `.gitlab-ci.yml` — l'interface sera alors disponible à :
+`https://p2408012.pages.univ-lyon1.fr/fraude_auto_rag/`
+
+> **Note :** en ligne, seule la partie Anthropic LLM fonctionne. Le scoring RAG nécessite l'API locale (`localhost:8000`).
 
 ---
 
