@@ -148,6 +148,13 @@ footer{background:var(--slate);padding:14px 32px;display:flex;align-items:center
     ATISSO &nbsp;·&nbsp; BADARO &nbsp;·&nbsp; ZANTE &nbsp;|&nbsp; Encadrant A. Couloumy – Dylogy
   </div>
 </nav>
+<div style="background:#1E293B;border-bottom:1px solid #334155;padding:8px 32px;display:flex;align-items:center;gap:10px">
+  <span style="font-size:11px;color:#64748B;white-space:nowrap;font-family:monospace">Clé Groq</span>
+  <input id="groq-key" type="password" placeholder="gsk_..."
+    style="flex:1;max-width:420px;background:#0F172A;border:1px solid #334155;border-radius:8px;padding:6px 12px;color:#94A3B8;font-family:monospace;font-size:12px;outline:none"
+    onfocus="this.style.borderColor='#4F46E5'" onblur="this.style.borderColor='#334155'">
+  <span style="font-size:11px;color:#475569">Gratuite sur <a href="https://console.groq.com" style="color:#818CF8">console.groq.com</a> — transmise uniquement à api.groq.com</span>
+</div>
 
 <div class="preload">
   <span class="preload-label">Exemples</span>
@@ -520,24 +527,32 @@ async function callLLM(c,scored){
       non_sra:!c.sra,expert_non_certifie:c.expert!=="AUCUN"&&!c.ecert
     }
   };
+  const groqKey=document.getElementById("groq-key")?.value?.trim()||"";
+  if(!groqKey){
+    dot.className="ldot err";
+    txt.textContent="Clé Groq manquante — entrez votre clé gsk_... en haut";
+    box.innerHTML=`<div style="font-size:12px;color:var(--red)">Entrez votre clé Groq (gsk_...) dans le champ en haut de la page.</div>`;
+    return;
+  }
   try{
-    const r=await fetch("https://api.anthropic.com/v1/messages",{
+    const r=await fetch("https://api.groq.com/openai/v1/chat/completions",{
       method:"POST",
       headers:{
         "Content-Type":"application/json",
-        "x-api-key": window.ANTHROPIC_API_KEY || "",
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true"
+        "Authorization":"Bearer "+groqKey
       },
       body:JSON.stringify({
-        model:"claude-sonnet-4-20250514",
+        model:"llama-3.3-70b-versatile",
         max_tokens:1000,
-        system:SKILL,
-        messages:[{role:"user",content:JSON.stringify(payload,null,2)}]
+        temperature:0.1,
+        messages:[
+          {role:"system",content:SKILL},
+          {role:"user",content:JSON.stringify(payload,null,2)}
+        ]
       })
     });
     const data=await r.json();
-    const raw=data.content?.[0]?.text||"";
+    const raw=data.choices?.[0]?.message?.content||"";
     let a;
     try{a=JSON.parse(raw.replace(/```json|```/g,"").trim());}catch{a=null;}
     dot.className="ldot ok";

@@ -5,8 +5,8 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from typing import List
-import uvicorn, time
+from typing import List, Any, Dict
+import uvicorn, time, requests as _req
 
 from pipeline import (
     hybrid_score, run_fraud_agent, run_agent_with_retry,
@@ -143,6 +143,28 @@ def analyze_with_judge(req: ClaimRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/proxy/anthropic")
+def proxy_anthropic(payload: Dict[str, Any]):
+    """Proxy CORS pour appels Anthropic depuis le navigateur."""
+    api_key = payload.get("api_key", "")
+    body    = payload.get("body", {})
+    if not api_key:
+        raise HTTPException(status_code=400, detail="api_key manquant")
+    r = _req.post(
+        "https://api.anthropic.com/v1/messages",
+        headers={
+            "x-api-key":         api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type":      "application/json",
+        },
+        json=body,
+        timeout=30,
+    )
+    if not r.ok:
+        raise HTTPException(status_code=r.status_code, detail=r.text)
+    return r.json()
 
 
 if __name__ == "__main__":
