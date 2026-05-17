@@ -1,6 +1,5 @@
 # FraudScan — Détection de fraude assurance auto par RAG & LLM
-
-> Projet académique — *IA & Assurance*, ISFA 2025–2026  
+>  *IA & Assurance*, ISFA 2025–2026  
 > Auteurs : **Apélété Primos ATISSO · Massile BADARO · Koami Bernardin ZANTE**
 
 ---
